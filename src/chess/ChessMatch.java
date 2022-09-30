@@ -21,6 +21,7 @@ public class ChessMatch {
 	private Board board;
 	private boolean check;
 	private boolean checkMate;
+	private ChessPiece enPassantVulnerable;
 
 	private List<Piece> piecesOnTheBoard = new ArrayList<>();
 	private List<Piece> capturedPieces = new ArrayList<>();
@@ -49,6 +50,10 @@ public class ChessMatch {
 		return checkMate;
 	}
 
+	public ChessPiece getEnPassantVulnerable() {
+		return enPassantVulnerable;
+	}
+
 	public ChessPiece[][] getPieces() {
 		ChessPiece[][] mat = new ChessPiece[board.getRows()][board.getColumns()];
 		for (int i = 0; i < board.getRows(); i++) {
@@ -75,17 +80,26 @@ public class ChessMatch {
 
 		if (testCheck(currentPlayer)) {
 			undoMove(source, target, capturedPiece);
-			throw new ChessPosition("You can't put yourself in check");
+			throw new ChessException("You can't put yourself in check");
 		}
+
+		ChessPiece movedPiece = (ChessPiece) board.piece(target);
 
 		check = (testCheck(opponent(currentPlayer))) ? true : false;
 
-		if (testCheck(opponent(currentPlayer))) {
+		if (testCheckMate(opponent(currentPlayer))) {
 			checkMate = true;
 		} else {
 			nextTurn();
 		}
 
+		// %specialmove en passant
+		if (movedPiece instanceof Pawn
+				&& (target.getRow() == source.getRow() - 2 || target.getRow() == source.getRow() + 2)) {
+			enPassantVulnerable = movedPiece;
+		} else {
+			enPassantVulnerable = null;
+		}
 		return (ChessPiece) capturedPiece;
 
 	}
@@ -178,7 +192,7 @@ public class ChessMatch {
 		return (color == Color.WHITE) ? Color.BLACK : Color.WHITE;
 	}
 
-	private ChessPiece king(Color color) {
+	private ChessPiece King(Color color) {
 		List<Piece> list = piecesOnTheBoard.stream().filter(x -> (ChessPiece)x).getColor()==color).colllect(Collectors.toList());
 		for(Piece p : list) {
 			if(p instanceof King) {
